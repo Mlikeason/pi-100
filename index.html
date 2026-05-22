@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>π 100 — 圆周率记忆挑战</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
+    <link rel="icon" type="image/png" sizes="180x180" href="icon-180.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="π 100">
+    <meta name="theme-color" content="#007AFF">
+    <style>
+        :root {
+            --blue: #007AFF;
+            --green: #34C759;
+            --orange: #FF9500;
+            --red: #FF3B30;
+            --yellow: #FFCC00;
+            --purple: #AF52DE;
+            --gold: #D9B24C;
+            --gold-deep: #B8902F;
+            --text-primary: #1c1c1e;
+            --text-secondary: #8E8E93;
+            --gray-fill: rgba(0, 0, 0, 0.05);
+            --gray-stroke: rgba(0, 0, 0, 0.15);
+            --backdrop: rgba(0, 0, 0, 0.45);
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        html, body { height: 100%; }
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif;
+            background: #ffffff;
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            user-select: none;
+            -webkit-user-select: none;
+            overflow: hidden;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 480px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 12px 12px max(8px, env(safe-area-inset-bottom));
+            min-height: 0;
+        }
+
+        /* Top status bar */
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .timer, .score {
+            font-size: clamp(18px, 5.2vw, 22px);
+            font-weight: 600;
+            padding: 8px 14px;
+            border-radius: 10px;
+            font-variant-numeric: tabular-nums;
+        }
+        .timer {
+            background: rgba(0, 122, 255, 0.1);
+            color: var(--blue);
+            font-family: 'SF Mono', Menlo, Consolas, monospace;
+        }
+        .score {
+            background: rgba(52, 199, 89, 0.1);
+            color: var(--green);
+        }
+
+        /* "3." prefix */
+        .prefix {
+            font-family: 'SF Mono', Menlo, Consolas, monospace;
+            font-size: clamp(24px, 7vw, 30px);
+            font-weight: 700;
+            text-align: center;
+            margin: 4px 0 8px;
+        }
+
+        /* Scrollable digit grid */
+        .grid-scroll {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            padding: 4px 0;
+            -webkit-overflow-scrolling: touch;
+        }
+        .grid {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            align-items: center;
+        }
+        .row {
+            display: flex;
+            gap: 16px;
+        }
+        .row-half {
+            display: flex;
+            gap: 5px;
+        }
+        .cell {
+            width: clamp(26px, 7.5vw, 32px);
+            height: clamp(34px, 9vw, 42px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--gray-fill);
+            border: 1px solid var(--gray-stroke);
+            border-radius: 8px;
+            font-family: 'SF Mono', Menlo, Consolas, monospace;
+            font-size: clamp(16px, 4.5vw, 20px);
+            font-weight: 600;
+            color: var(--text-primary);
+            transition: background-color 0.15s, border-color 0.15s;
+        }
+        .cell.active {
+            background: rgba(0, 122, 255, 0.12);
+            border-color: var(--blue);
+        }
+        .cell.wrong { color: var(--red); }
+
+        /* Keypad */
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+            padding: 14px 0 4px;
+            justify-items: center;
+            flex-shrink: 0;
+        }
+        .key {
+            width: clamp(56px, 17vw, 70px);
+            height: clamp(56px, 17vw, 70px);
+            border-radius: 50%;
+            border: none;
+            font-family: -apple-system, sans-serif;
+            font-size: clamp(22px, 6.5vw, 28px);
+            font-weight: 500;
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.06);
+            color: var(--text-primary);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            transition: transform 0.05s, background-color 0.2s;
+            padding: 0;
+        }
+        .key:active { transform: scale(0.94); }
+        .key.hint {
+            background: rgba(255, 204, 0, 0.4);
+            box-shadow: 0 2px 5px rgba(255, 204, 0, 0.35);
+        }
+        .key.clear {
+            background: var(--blue);
+            color: white;
+            box-shadow: 0 2px 5px rgba(0, 122, 255, 0.3);
+        }
+        .key.medal {
+            background: var(--gold);
+            color: white;
+            box-shadow: 0 2px 5px rgba(217, 178, 76, 0.4);
+        }
+
+        /* Modal backdrop */
+        .backdrop {
+            position: fixed; inset: 0;
+            background: var(--backdrop);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            z-index: 100;
+            -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+        }
+        .backdrop.show { display: flex; }
+        .modal {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            width: 100%;
+            max-width: 360px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+            animation: pop 0.25s ease-out;
+        }
+        @keyframes pop {
+            from { opacity: 0; transform: scale(0.92); }
+            to   { opacity: 1; transform: scale(1); }
+        }
+
+        .achievement {
+            font-size: 38px;
+            font-weight: 800;
+            color: var(--orange);
+            text-align: center;
+            margin-bottom: 8px;
+        }
+        .modal h2 {
+            margin: 0 0 16px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: 700;
+        }
+        .modal .row-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            padding: 8px 0;
+            font-size: 17px;
+        }
+        .row-info .label { color: var(--text-secondary); }
+        .row-info .value { font-weight: 600; font-variant-numeric: tabular-nums; }
+        .row-info.bonus .value { color: var(--green); }
+        .row-info.time .value { color: var(--orange); font-family: 'SF Mono', Menlo, monospace; }
+        .row-info.final {
+            border-top: 1px solid var(--gray-stroke);
+            margin-top: 6px;
+            padding-top: 14px;
+        }
+        .row-info.final .value { font-size: 26px; color: var(--purple); font-weight: 800; }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 14px;
+            font-family: inherit;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            background: var(--blue);
+            color: white;
+            margin-top: 14px;
+            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+            transition: transform 0.05s;
+        }
+        .btn:active { transform: translateY(1px); }
+        .btn.secondary {
+            background: var(--gray-fill);
+            color: var(--blue);
+            box-shadow: none;
+        }
+
+        /* Leaderboard list */
+        .leader-list {
+            max-height: 55vh;
+            overflow-y: auto;
+            margin: 4px 0;
+        }
+        .leader-row {
+            display: grid;
+            grid-template-columns: 24px 1fr auto;
+            gap: 12px;
+            align-items: baseline;
+            padding: 10px 4px;
+            border-bottom: 1px solid var(--gray-stroke);
+        }
+        .leader-row:last-child { border-bottom: none; }
+        .leader-row .rank { font-weight: 700; color: var(--text-secondary); }
+        .leader-row .time { font-family: 'SF Mono', Menlo, monospace; color: var(--blue); font-weight: 600; }
+        .leader-row .date { color: var(--text-secondary); font-size: 13px; margin-left: 8px; }
+        .leader-row .pts { color: var(--green); font-weight: 600; }
+        .empty { text-align: center; color: var(--text-secondary); padding: 24px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="status-bar">
+            <div class="timer" id="timer">00:00</div>
+            <div class="score">得分: <span id="score">0</span></div>
+        </div>
+
+        <div class="prefix">3.</div>
+
+        <div class="grid-scroll" id="grid-scroll">
+            <div class="grid" id="grid"></div>
+        </div>
+
+        <div class="keypad" id="keypad"></div>
+    </div>
+
+    <!-- Game over modal -->
+    <div class="backdrop" id="gameover-backdrop">
+        <div class="modal">
+            <div class="achievement" id="achievement"></div>
+            <h2>游戏结束！</h2>
+            <div class="row-info"><span class="label">基础得分</span><span class="value" id="m-base"></span></div>
+            <div class="row-info bonus"><span class="label">时间加分</span><span class="value" id="m-bonus"></span></div>
+            <div class="row-info time"><span class="label">用时</span><span class="value" id="m-time"></span></div>
+            <div class="row-info final"><span class="label">最终得分</span><span class="value" id="m-final"></span></div>
+            <button class="btn" onclick="resetGame()">重新开始</button>
+        </div>
+    </div>
+
+    <!-- Leaderboard modal -->
+    <div class="backdrop" id="leaderboard-backdrop">
+        <div class="modal">
+            <h2>🏆 最佳记录</h2>
+            <div class="leader-list" id="leader-list"></div>
+            <button class="btn secondary" onclick="closeLeaderboard()">关闭</button>
+        </div>
+    </div>
+
+    <script>
+        const PI_DIGITS = "14159265358979323846264338327950288419716939937510582097494459230781640628620899862803482534211706798214808651328230664709384460955058223172535940812848111745028410270193852110555964462294895493038196";
+        const TARGET_TIME = 180;
+        const HINT_DELAY_MS = 3000;
+        const STORAGE_KEY = 'pi100_top_scores';
+        const MAX_RECORDS = 10;
+        const KEYS = ['1','2','3','4','5','6','7','8','9','M','0','C'];
+
+        let currentIndex = 0;
+        let score = 0;
+        let inputs = new Array(100).fill('');
+        let wrongAt = new Array(100).fill(false);
+        let elapsedTime = 0;
+        let lastInputTime = Date.now();
+        let showHint = false;
+        let mainTimer = null;
+        let hintTimer = null;
+        let gameDone = false;
+
+        const gridScroll = document.getElementById('grid-scroll');
+        const grid = document.getElementById('grid');
+        const keypad = document.getElementById('keypad');
+        const timerEl = document.getElementById('timer');
+        const scoreEl = document.getElementById('score');
+        const gameoverBd = document.getElementById('gameover-backdrop');
+        const leaderboardBd = document.getElementById('leaderboard-backdrop');
+        const leaderList = document.getElementById('leader-list');
+
+        function fmtTime(sec) {
+            const m = String(Math.floor(sec / 60)).padStart(2, '0');
+            const s = String(sec % 60).padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        function fmtDate(ts) {
+            const d = new Date(ts);
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            const HH = String(d.getHours()).padStart(2, '0');
+            const MM = String(d.getMinutes()).padStart(2, '0');
+            return `${mm}-${dd} ${HH}:${MM}`;
+        }
+
+        function buildGrid() {
+            grid.innerHTML = '';
+            for (let r = 0; r < 10; r++) {
+                const row = document.createElement('div');
+                row.className = 'row';
+                for (let half = 0; half < 2; half++) {
+                    const halfDiv = document.createElement('div');
+                    halfDiv.className = 'row-half';
+                    for (let c = 0; c < 5; c++) {
+                        const idx = r * 10 + half * 5 + c;
+                        const cell = document.createElement('div');
+                        cell.className = 'cell';
+                        cell.id = `cell-${idx}`;
+                        halfDiv.appendChild(cell);
+                    }
+                    row.appendChild(halfDiv);
+                }
+                grid.appendChild(row);
+            }
+        }
+
+        function buildKeypad() {
+            keypad.innerHTML = '';
+            for (const k of KEYS) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'key';
+                btn.textContent = k;
+                btn.id = `key-${k}`;
+                if (k === 'C') {
+                    btn.classList.add('clear');
+                    btn.addEventListener('click', cleanGame);
+                } else if (k === 'M') {
+                    btn.classList.add('medal');
+                    btn.addEventListener('click', showLeaderboard);
+                } else {
+                    btn.addEventListener('click', () => handleInput(parseInt(k)));
+                }
+                keypad.appendChild(btn);
+            }
+        }
+
+        function renderCell(idx) {
+            const cell = document.getElementById(`cell-${idx}`);
+            if (!cell) return;
+            cell.textContent = inputs[idx];
+            cell.classList.toggle('wrong', wrongAt[idx]);
+            cell.classList.toggle('active', idx === currentIndex && !gameDone);
+        }
+
+        function renderAllCells() {
+            for (let i = 0; i < 100; i++) renderCell(i);
+        }
+
+        function renderHint() {
+            for (let i = 0; i <= 9; i++) {
+                const btn = document.getElementById(`key-${i}`);
+                if (btn) btn.classList.remove('hint');
+            }
+            if (showHint && !gameDone && currentIndex < 100) {
+                const correct = PI_DIGITS[currentIndex];
+                const btn = document.getElementById(`key-${correct}`);
+                if (btn) btn.classList.add('hint');
+            }
+        }
+
+        function scrollToCurrent() {
+            const cell = document.getElementById(`cell-${currentIndex}`);
+            if (!cell) return;
+            const row = cell.parentElement.parentElement; // half -> row
+            const rowOffset = row.offsetTop;
+            const targetTop = Math.max(0, rowOffset - 60);
+            gridScroll.scrollTo({ top: targetTop, behavior: 'smooth' });
+        }
+
+        function handleInput(num) {
+            if (gameDone || currentIndex >= 100) return;
+            const idx = currentIndex;
+            const correct = parseInt(PI_DIGITS[idx]);
+            if (num === correct) {
+                inputs[idx] = String(num);
+                wrongAt[idx] = false;
+                score++;
+            } else {
+                inputs[idx] = String(correct);
+                wrongAt[idx] = true;
+            }
+            currentIndex++;
+            renderCell(idx);
+            if (currentIndex < 100) {
+                renderCell(currentIndex);
+                scrollToCurrent();
+            }
+            lastInputTime = Date.now();
+            showHint = false;
+            scoreEl.textContent = score;
+            renderHint();
+            if (currentIndex >= 100) finishGame();
+        }
+
+        function achievementText(seconds) {
+            if (seconds <= 110) return '卷王！';
+            if (seconds <= 120) return '厉害！';
+            if (seconds <= 130) return '真棒！';
+            if (seconds <= 150) return '胜利';
+            return '';
+        }
+
+        function finishGame() {
+            gameDone = true;
+            stopTimer();
+            stopHintTimer();
+            const timeBonus = Math.max(0, TARGET_TIME - elapsedTime);
+            const finalScore = score + timeBonus;
+            saveRecord({
+                score: finalScore,
+                baseScore: score,
+                timeBonus,
+                timeUsed: elapsedTime,
+                date: Date.now()
+            });
+            document.getElementById('m-base').textContent = score;
+            document.getElementById('m-bonus').textContent = `+${timeBonus}`;
+            document.getElementById('m-time').textContent = fmtTime(elapsedTime);
+            document.getElementById('m-final').textContent = finalScore;
+            const ach = achievementText(elapsedTime);
+            const achEl = document.getElementById('achievement');
+            achEl.textContent = ach;
+            achEl.style.display = ach ? 'block' : 'none';
+            gameoverBd.classList.add('show');
+        }
+
+        function startTimer() {
+            stopTimer();
+            timerEl.textContent = fmtTime(elapsedTime);
+            mainTimer = setInterval(() => {
+                elapsedTime++;
+                timerEl.textContent = fmtTime(elapsedTime);
+            }, 1000);
+        }
+        function stopTimer() { if (mainTimer) { clearInterval(mainTimer); mainTimer = null; } }
+
+        function startHintTimer() {
+            stopHintTimer();
+            hintTimer = setInterval(() => {
+                if (gameDone) return;
+                if (Date.now() - lastInputTime >= HINT_DELAY_MS) {
+                    if (!showHint) { showHint = true; renderHint(); }
+                } else {
+                    if (showHint) { showHint = false; renderHint(); }
+                }
+            }, 200);
+        }
+        function stopHintTimer() { if (hintTimer) { clearInterval(hintTimer); hintTimer = null; } }
+
+        function cleanGame() {
+            currentIndex = 0;
+            score = 0;
+            inputs = new Array(100).fill('');
+            wrongAt = new Array(100).fill(false);
+            elapsedTime = 0;
+            lastInputTime = Date.now();
+            showHint = false;
+            gameDone = false;
+            gameoverBd.classList.remove('show');
+            leaderboardBd.classList.remove('show');
+            scoreEl.textContent = score;
+            renderAllCells();
+            renderHint();
+            startTimer();
+            startHintTimer();
+            gridScroll.scrollTo({ top: 0 });
+        }
+
+        function resetGame() { cleanGame(); }
+
+        function showLeaderboard() {
+            const records = getRecords();
+            leaderList.innerHTML = '';
+            if (records.length === 0) {
+                leaderList.innerHTML = '<div class="empty">还没有记录</div>';
+            } else {
+                records.forEach((rec, i) => {
+                    const row = document.createElement('div');
+                    row.className = 'leader-row';
+                    row.innerHTML = `
+                        <span class="rank">${i + 1}.</span>
+                        <span>
+                            <span class="time">${fmtTime(rec.timeUsed)}</span>
+                            <span class="date">${fmtDate(rec.date)}</span>
+                        </span>
+                        <span class="pts">${rec.score}分</span>
+                    `;
+                    leaderList.appendChild(row);
+                });
+            }
+            leaderboardBd.classList.add('show');
+        }
+
+        function closeLeaderboard() { leaderboardBd.classList.remove('show'); }
+
+        function getRecords() {
+            try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+            catch { return []; }
+        }
+
+        function saveRecord(rec) {
+            let records = getRecords();
+            records.push(rec);
+            records.sort((a, b) => a.timeUsed - b.timeUsed);
+            records = records.slice(0, MAX_RECORDS);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+        }
+
+        // Tap backdrop (outside modal) to close leaderboard
+        leaderboardBd.addEventListener('click', (e) => {
+            if (e.target === leaderboardBd) closeLeaderboard();
+        });
+
+        // Desktop keyboard support: 0-9 inputs, Esc closes modals
+        document.addEventListener('keydown', (e) => {
+            if (e.key >= '0' && e.key <= '9' && !gameDone) {
+                handleInput(parseInt(e.key));
+            } else if (e.key === 'Escape') {
+                if (leaderboardBd.classList.contains('show')) closeLeaderboard();
+            }
+        });
+
+        buildGrid();
+        buildKeypad();
+        cleanGame();
+    </script>
+</body>
+</html>
