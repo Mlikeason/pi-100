@@ -418,12 +418,19 @@
         }
 
         function scrollToCurrent() {
-            const cell = document.getElementById(`cell-${currentIndex}`);
-            if (!cell) return;
-            const row = cell.parentElement.parentElement; // half -> row
-            const rowOffset = row.offsetTop;
-            const targetTop = Math.max(0, rowOffset - 60);
-            gridScroll.scrollTo({ top: targetTop, behavior: 'smooth' });
+            const row = Math.floor(currentIndex / 10); // 0-indexed row of current cell
+            // Keep the first 5 rows fully visible — don't scroll until cursor enters row 6.
+            if (row < 5) {
+                gridScroll.scrollTo({ top: 0, behavior: 'smooth' });
+                return;
+            }
+            // From row 6 on, scroll so the current row sits at the bottom of the viewport
+            // with the previous 4 rows still visible above it.
+            const anchorRowIdx = row - 4;
+            const anchorCell = document.getElementById(`cell-${anchorRowIdx * 10}`);
+            if (!anchorCell) return;
+            const anchorRow = anchorCell.parentElement.parentElement;
+            gridScroll.scrollTo({ top: anchorRow.offsetTop, behavior: 'smooth' });
         }
 
         function handleInput(num) {
