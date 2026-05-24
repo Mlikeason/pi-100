@@ -36,6 +36,18 @@
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        /* Hidden iOS-haptic switch — keep in layout (not display:none) or the
+           label click won't fire the native haptic. */
+        #haptic-trigger, #haptic-switch {
+            position: fixed;
+            top: -100px;
+            left: -100px;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+            pointer-events: none;
+        }
         html, body { height: 100%; }
         body {
             margin: 0;
@@ -246,13 +258,37 @@
             cursor: pointer;
             background: var(--surface);
             color: var(--ink);
-            transition: transform 0.08s ease, background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+            transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
             padding: 0;
             font-variant-numeric: tabular-nums;
+            position: relative;
+            overflow: hidden;
         }
         .key:active {
-            transform: scale(0.96);
             background: var(--surface-2);
+        }
+        /* Brief "click" animation triggered via JS on every keypress */
+        .key.tapped {
+            animation: keyTap 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        @keyframes keyTap {
+            0%   { transform: scale(1); }
+            35%  { transform: scale(0.86); }
+            100% { transform: scale(1); }
+        }
+        /* Ripple flash on number keys */
+        .key.num.tapped::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background: radial-gradient(circle at center, rgba(91, 208, 139, 0.45), transparent 70%);
+            animation: keyFlash 0.28s ease-out;
+            pointer-events: none;
+        }
+        @keyframes keyFlash {
+            from { opacity: 0.9; }
+            to   { opacity: 0; }
         }
         .key.hint {
             background: rgba(232, 184, 96, 0.18);
@@ -610,6 +646,11 @@
     </style>
 </head>
 <body>
+    <!-- iOS 17.4+ haptic hack: programmatically clicking the label fires the
+         native UISwitch toggle haptic. No-op on other browsers. -->
+    <label id="haptic-trigger" for="haptic-switch" aria-hidden="true"></label>
+    <input id="haptic-switch" type="checkbox" switch aria-hidden="true" tabindex="-1">
+
     <div class="container">
         <div class="status-bar">
             <div class="stat time">
@@ -729,9 +770,61 @@
         const saveStatus = document.getElementById('save-status');
         const scopeNote = document.getElementById('scope-note');
 
-        // Haptic feedback (iOS 16.4+ / Android Chrome). No-op where unsupported.
-        function haptic(pattern) {
-            try { if (navigator.vibrate) navigator.vibrate(pattern); } catch {}
+        // ---- Tactile feedback layer ----
+        // Combines three things, each a no-op where unsupported:
+        //   1. Android Chrome — navigator.vibrate(pattern)
+        //   2. iOS 17.4+ Safari — clicking a hidden <label for=switch>
+        //      triggers the native UISwitch haptic
+        //   3. Web Audio — a very short tick so every device gets *something*
+        const hapticTrigger = document.getElementById('haptic-trigger');
+        let audioCtx = null;
+        function ensureAudio() {
+            if (audioCtx) return audioCtx;
+            try {
+                const Ctx = window.AudioContext || window.webkitAudioContext;
+                if (Ctx) audioCtx = new Ctx();
+            } catch {}
+            return audioCtx;
+        }
+        function tick(freq, duration = 0.04, vol = 0.07, type = 'sine') {
+            const ctx = ensureAudio();
+            if (!ctx) return;
+            if (ctx.state === 'suspended') ctx.resume();
+            const t = ctx.currentTime;
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = type;
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(vol, t);
+            gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+            osc.connect(gain).connect(ctx.destination);
+            osc.start(t);
+            osc.stop(t + duration + 0.02);
+        }
+        function feedback(kind) {
+            // 1. iOS native UISwitch haptic via hidden switch click
+            try { hapticTrigger && hapticTrigger.click(); } catch {}
+            // 2. Android vibration
+            try {
+                if (navigator.vibrate) {
+                    if (kind === 'wrong') navigator.vibrate([18, 40, 26]);
+                    else if (kind === 'finish') navigator.vibrate([30, 60, 30, 60, 50]);
+                    else if (kind === 'util') navigator.vibrate(14);
+                    else navigator.vibrate(8);
+                }
+            } catch {}
+            // 3. Audio click — subtle, distinct timbre per kind
+            if (kind === 'correct')      tick(1400, 0.035, 0.06, 'sine');
+            else if (kind === 'wrong')   tick(220, 0.10, 0.10, 'square');
+            else if (kind === 'util')    tick(900, 0.05, 0.05, 'triangle');
+            else if (kind === 'finish') { tick(660, 0.08, 0.08); setTimeout(() => tick(880, 0.08, 0.08), 90); setTimeout(() => tick(1320, 0.14, 0.08), 200); }
+        }
+        function animateKey(btn) {
+            if (!btn) return;
+            btn.classList.remove('tapped');
+            // force reflow so the animation can replay on rapid presses
+            void btn.offsetWidth;
+            btn.classList.add('tapped');
         }
 
         function fmtTime(sec) {
@@ -780,11 +873,12 @@
                 btn.id = `key-${k}`;
                 if (k === 'C') {
                     btn.classList.add('clear');
-                    btn.addEventListener('click', () => { haptic(14); cleanGame(); });
+                    btn.addEventListener('click', () => { animateKey(btn); feedback('util'); cleanGame(); });
                 } else if (k === 'M') {
                     btn.classList.add('medal');
-                    btn.addEventListener('click', () => { haptic(14); showLeaderboard(); });
+                    btn.addEventListener('click', () => { animateKey(btn); feedback('util'); showLeaderboard(); });
                 } else {
+                    btn.classList.add('num');
                     btn.addEventListener('click', () => handleInput(parseInt(k)));
                 }
                 keypad.appendChild(btn);
@@ -832,15 +926,17 @@
             if (gameDone || currentIndex >= 100) return;
             const idx = currentIndex;
             const correct = parseInt(PI_DIGITS[idx]);
+            // visual press feedback on whichever key was hit
+            animateKey(document.getElementById(`key-${num}`));
             if (num === correct) {
                 inputs[idx] = String(num);
                 wrongAt[idx] = false;
                 score++;
-                haptic(8);                  // light tap for correct
+                feedback('correct');
             } else {
                 inputs[idx] = String(correct);
                 wrongAt[idx] = true;
-                haptic([18, 40, 26]);       // double pulse for wrong
+                feedback('wrong');
             }
             currentIndex++;
             renderCell(idx);
@@ -893,7 +989,7 @@
             achEl.textContent = ach;
             achEl.style.display = ach ? 'block' : 'none';
             gameoverModal.classList.toggle('celebrate', score >= 80);
-            haptic(score >= 80 ? [30, 60, 30, 60, 50] : [30, 80, 30]);
+            feedback('finish');
             gameoverBd.classList.add('show');
 
             // focus name input if empty so user is prompted to write one
@@ -980,9 +1076,22 @@
             if (!REMOTE_URL) return null;
             try {
                 const r = await fetch(REMOTE_URL);
-                if (!r.ok) return null;
-                const data = await r.json();
-                return Array.isArray(data.records) ? data.records : [];
+                if (r.ok) {
+                    const data = await r.json();
+                    return Array.isArray(data.records) ? data.records : [];
+                }
+                // Pantry returns 400 when basket doesn't exist yet — that's fine,
+                // it just means we haven't saved anything yet. Treat as empty.
+                if (r.status === 400) {
+                    try {
+                        const data = await r.json();
+                        if (typeof data?.error === 'string' &&
+                            data.error.toLowerCase().includes('could not get basket')) {
+                            return [];
+                        }
+                    } catch {}
+                }
+                return null;
             } catch { return null; }
         }
 
