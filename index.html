@@ -91,7 +91,10 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            padding: 14px 16px max(10px, env(safe-area-inset-bottom));
+            padding:
+                max(64px, calc(env(safe-area-inset-top) + 14px))
+                16px
+                max(10px, env(safe-area-inset-bottom));
             min-height: 0;
         }
 
@@ -707,7 +710,9 @@
         let mainTimer = null;
         let hintTimer = null;
         let gameDone = false;
-        let currentRecordId = null;     // id of the just-saved record (for rename)
+        let pendingRecord = null;       // the just-finished record being edited
+        let pendingUploadTimer = null;  // debounce timer for remote upload
+        let pendingUploadPromise = null;// in-flight upload (serialised)
         let cachedAllRecords = [];      // last fetched all records
         let activeTab = 'top';
 
@@ -723,6 +728,11 @@
         const nameInput = document.getElementById('name-input');
         const saveStatus = document.getElementById('save-status');
         const scopeNote = document.getElementById('scope-note');
+
+        // Haptic feedback (iOS 16.4+ / Android Chrome). No-op where unsupported.
+        function haptic(pattern) {
+            try { if (navigator.vibrate) navigator.vibrate(pattern); } catch {}
+        }
 
         function fmtTime(sec) {
             const m = String(Math.floor(sec / 60)).padStart(2, '0');
@@ -770,10 +780,10 @@
                 btn.id = `key-${k}`;
                 if (k === 'C') {
                     btn.classList.add('clear');
-                    btn.addEventListener('click', cleanGame);
+                    btn.addEventListener('click', () => { haptic(14); cleanGame(); });
                 } else if (k === 'M') {
                     btn.classList.add('medal');
-                    btn.addEventListener('click', showLeaderboard);
+                    btn.addEventListener('click', () => { haptic(14); showLeaderboard(); });
                 } else {
                     btn.addEventListener('click', () => handleInput(parseInt(k)));
                 }
@@ -826,9 +836,11 @@
                 inputs[idx] = String(num);
                 wrongAt[idx] = false;
                 score++;
+                haptic(8);                  // light tap for correct
             } else {
                 inputs[idx] = String(correct);
                 wrongAt[idx] = true;
+                haptic([18, 40, 26]);       // double pulse for wrong
             }
             currentIndex++;
             renderCell(idx);
@@ -870,8 +882,7 @@
                 timeUsed: elapsedTime,
                 date: Date.now()
             };
-            currentRecordId = record.id;
-            saveRecord(record);
+            stageRecord(record);
 
             document.getElementById('m-base').textContent = score;
             document.getElementById('m-bonus').textContent = `+${timeBonus}`;
@@ -882,8 +893,7 @@
             achEl.textContent = ach;
             achEl.style.display = ach ? 'block' : 'none';
             gameoverModal.classList.toggle('celebrate', score >= 80);
-            saveStatus.textContent = '';
-            saveStatus.className = 'save-status';
+            haptic(score >= 80 ? [30, 60, 30, 60, 50] : [30, 80, 30]);
             gameoverBd.classList.add('show');
 
             // focus name input if empty so user is prompted to write one
@@ -935,7 +945,11 @@
             gridScroll.scrollTo({ top: 0 });
         }
 
-        function resetGame() { cleanGame(); }
+        async function resetGame() {
+            await flushUpload();
+            pendingRecord = null;
+            cleanGame();
+        }
 
         // ---- Records storage (local + remote) ----
 
@@ -973,7 +987,7 @@
         }
 
         async function pushRemoteRecords(records) {
-            if (!REMOTE_URL) return false;
+            if (!REMOTE_URL) return { ok: false, status: 0 };
             try {
                 const trimmed = records.slice(-MAX_REMOTE);
                 const r = await fetch(REMOTE_URL, {
@@ -981,63 +995,92 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ records: trimmed })
                 });
-                return r.ok;
-            } catch { return false; }
+                return { ok: r.ok, status: r.status };
+            } catch { return { ok: false, status: 0 }; }
         }
 
-        function saveRecord(rec) {
-            // local first (sync)
+        function setStatus(text, kind) {
+            saveStatus.textContent = text;
+            saveStatus.className = 'save-status' + (kind ? ' ' + kind : '');
+        }
+
+        // Stage a finished record for upload. Subsequent name edits mutate
+        // pendingRecord; uploads are serialised so we always send the latest state.
+        function stageRecord(rec) {
+            pendingRecord = rec;
+            // local save is synchronous and immediate
             const local = getLocalRecords();
-            local.push(rec);
+            local.push({ ...rec });
             setLocalRecords(local);
-            // then push to remote (async; non-blocking)
             if (REMOTE_URL) {
-                saveStatus.textContent = '上传中…';
-                saveStatus.className = 'save-status';
-                (async () => {
-                    const remote = await fetchRemoteRecords();
-                    if (remote === null) {
-                        saveStatus.textContent = '云端连接失败，仅保存在本地';
-                        saveStatus.className = 'save-status err';
-                        return;
-                    }
-                    remote.push(rec);
-                    const ok = await pushRemoteRecords(remote);
-                    if (ok) {
-                        saveStatus.textContent = '已上传到云端 ✓';
-                        saveStatus.className = 'save-status ok';
-                    } else {
-                        saveStatus.textContent = '云端写入失败，仅保存在本地';
-                        saveStatus.className = 'save-status err';
-                    }
-                })();
+                setStatus('稍后上传…');
+                scheduleUpload(3000);  // give user time to type a name
             } else {
-                saveStatus.textContent = '已保存到本机';
-                saveStatus.className = 'save-status ok';
+                setStatus('已保存到本机', 'ok');
             }
         }
 
-        async function updateRecordName(id, newName) {
-            // update local
+        function applyNameToPending(newName) {
+            if (!pendingRecord) return;
+            pendingRecord.name = newName;
+            // mirror to local storage
             const local = getLocalRecords();
-            const lr = local.find(r => r.id === id);
+            const lr = local.find(r => r.id === pendingRecord.id);
             if (lr) { lr.name = newName; setLocalRecords(local); }
-            // update remote
-            if (REMOTE_URL) {
-                const remote = await fetchRemoteRecords();
-                if (remote === null) return false;
-                const rr = remote.find(r => r.id === id);
-                if (rr) {
-                    rr.name = newName;
-                    return await pushRemoteRecords(remote);
-                }
+            // re-schedule remote upload with the new name
+            if (REMOTE_URL) scheduleUpload(1200);
+        }
+
+        function scheduleUpload(delay) {
+            if (!REMOTE_URL || !pendingRecord) return;
+            clearTimeout(pendingUploadTimer);
+            pendingUploadTimer = setTimeout(runUpload, delay);
+        }
+
+        // Serialised upload. If one is already in flight, queue another after it.
+        async function runUpload() {
+            if (pendingUploadPromise) {
+                await pendingUploadPromise;
             }
-            return true;
+            if (!pendingRecord) return;
+            const snapshot = { ...pendingRecord };
+            pendingUploadPromise = (async () => {
+                setStatus('上传中…');
+                const remote = await fetchRemoteRecords();
+                if (remote === null) {
+                    setStatus('云端连接失败，仅本地', 'err');
+                    return;
+                }
+                const idx = remote.findIndex(r => r.id === snapshot.id);
+                if (idx >= 0) remote[idx] = snapshot;
+                else remote.push(snapshot);
+                const result = await pushRemoteRecords(remote);
+                if (result.ok) {
+                    setStatus('已上传到云端 ✓', 'ok');
+                } else {
+                    setStatus(`云端写入失败 (${result.status || 'network'})`, 'err');
+                }
+            })();
+            try { await pendingUploadPromise; }
+            finally { pendingUploadPromise = null; }
+        }
+
+        // Flush any pending debounced upload immediately and wait for it.
+        async function flushUpload() {
+            if (pendingUploadTimer) {
+                clearTimeout(pendingUploadTimer);
+                pendingUploadTimer = null;
+                await runUpload();
+            } else if (pendingUploadPromise) {
+                await pendingUploadPromise;
+            }
         }
 
         // ---- Leaderboard / scoreboard rendering ----
 
         async function showLeaderboard() {
+            // make sure any in-flight or pending upload completes before we fetch
+            await flushUpload();
             leaderboardBd.classList.add('show');
             renderRecords();  // show local immediately
             if (REMOTE_URL) {
@@ -1084,7 +1127,7 @@
             view.forEach((rec, i) => {
                 const row = document.createElement('div');
                 row.className = 'leader-row';
-                if (rec.id && rec.id === currentRecordId) row.classList.add('self');
+                if (rec.id && pendingRecord && rec.id === pendingRecord.id) row.classList.add('self');
                 const rankCol = activeTab === 'top' ? `${i + 1}` : '·';
                 const nameHtml = `<span class="name">${escapeHTML(rec.name || '匿名')}<span class="date">${fmtDate(rec.date)}</span></span>`;
                 row.innerHTML = `
@@ -1115,21 +1158,32 @@
             if (e.target === leaderboardBd) closeLeaderboard();
         });
 
-        // Name input: debounced — update localStorage + rename current record
+        // Best-effort flush if user closes the tab while an upload is pending
+        window.addEventListener('beforeunload', () => {
+            if (REMOTE_URL && pendingRecord && pendingUploadTimer) {
+                clearTimeout(pendingUploadTimer);
+                runUpload();
+            }
+        });
+
+        // Name input: debounced — remember name locally, update pending record,
+        // and let the upload pipeline re-send the latest version.
         let nameDebounce = null;
         nameInput.addEventListener('input', () => {
             clearTimeout(nameDebounce);
             const v = nameInput.value.trim();
-            nameDebounce = setTimeout(async () => {
+            nameDebounce = setTimeout(() => {
                 if (v) localStorage.setItem(NAME_KEY, v);
-                if (!currentRecordId) return;
-                const finalName = v || '匿名';
-                saveStatus.textContent = '更新姓名…';
-                saveStatus.className = 'save-status';
-                const ok = await updateRecordName(currentRecordId, finalName);
-                saveStatus.textContent = ok ? '已保存 ✓' : '姓名更新失败';
-                saveStatus.className = 'save-status ' + (ok ? 'ok' : 'err');
-            }, 600);
+                applyNameToPending(v || '匿名');
+            }, 400);
+        });
+        // Flush immediately when the user leaves the field
+        nameInput.addEventListener('blur', () => {
+            clearTimeout(nameDebounce);
+            const v = nameInput.value.trim();
+            if (v) localStorage.setItem(NAME_KEY, v);
+            applyNameToPending(v || '匿名');
+            if (REMOTE_URL) scheduleUpload(0);
         });
 
         document.addEventListener('keydown', (e) => {
