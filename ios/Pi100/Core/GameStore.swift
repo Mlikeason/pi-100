@@ -10,8 +10,12 @@ import Combine
     @Published var feedback: DigitAnswer?
     private let fileURL: URL
     private let now: () -> TimeInterval
-    // Keep unreadable data intact until the user explicitly clears it.
+    // Corrupt saves stay on disk until the user explicitly clears them.
+    // A transient read failure (for example data protection before unlock) is retried instead.
     private var canWrite = true
+    private var transientReadFailure = false
+    private var editedSinceLoad = false
+    private var sceneActive: [UUID: Bool] = [:]
 
     init(fileURL: URL? = nil, now: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }) {
         self.now = now
@@ -19,11 +23,17 @@ import Combine
         load()
     }
     func elapsed() -> TimeInterval { session.elapsed(at: now()) }
-    func start() { session.start(at: now()); save() }
-    func pause() { session.pause(at: now()); save() }
-    func hint() { session.revealHint(); save() }
+    func start() {
+        retryLoadIfNeeded()
+        mutate { session.start(at: now()) }
+        save()
+    }
+    func pause() { mutate { session.pause(at: now()) }; save() }
+    func hint() { mutate { session.revealHint() }; save() }
     func enter(_ digit: Int) {
+        let before = session
         guard let answer = session.enter(digit, at: now()) else { return }
+        if session != before { editedSinceLoad = true }
         feedback = answer
         if session.phase == .finished {
             if !records.contains(where: { $0.id == session.id }) { records.insert(GameRecord(session: session), at: 0) }
@@ -36,6 +46,7 @@ import Combine
         session = GameSession(mode: mode, positions: positions)
         feedback = nil
         showResult = false
+        editedSinceLoad = true
         save()
     }
     func markSubmitted(_ id: UUID) { submittedIDs.insert(id); save() }
@@ -45,8 +56,35 @@ import Combine
         submittedIDs = []
         feedback = nil
         showResult = false
+        editedSinceLoad = false
+        transientReadFailure = false
         canWrite = true
         save()
+    }
+    /// Registers one window. Several scenes share this store; a challenge pauses only when none remain active.
+    func registerScene(_ id: UUID, active: Bool) {
+        sceneActive[id] = active
+        if active { retryLoadIfNeeded() }
+    }
+    func unregisterScene(_ id: UUID) {
+        sceneActive.removeValue(forKey: id)
+    }
+    func updateScene(_ id: UUID, active: Bool) {
+        sceneActive[id] = active
+        if active {
+            retryLoadIfNeeded()
+        } else if !sceneActive.isEmpty && !sceneActive.values.contains(true) {
+            pause()
+        }
+    }
+    func retryLoadIfNeeded() {
+        guard transientReadFailure, !editedSinceLoad else { return }
+        load()
+    }
+    private func mutate(_ change: () -> Void) {
+        let before = session
+        change()
+        if session != before { editedSinceLoad = true }
     }
     func save() {
         guard canWrite else { return }
@@ -61,13 +99,26 @@ import Combine
     }
     private func load() {
         guard FileManager.default.fileExists(atPath: fileURL.path) else { return }
+        let data: Data
         do {
-            let saved = try JSONDecoder().decode(SavedProgress.self, from: Data(contentsOf: fileURL))
+            data = try Data(contentsOf: fileURL)
+        } catch {
+            transientReadFailure = true
+            canWrite = false
+            storageError = L.text("暂时无法读取存档，原文件已保留。回到应用后会再试。", "The save could not be read just now and was left untouched. It will be tried again when you return.")
+            return
+        }
+        do {
+            let saved = try JSONDecoder().decode(SavedProgress.self, from: data)
             guard saved.isValid else { throw CocoaError(.coderReadCorrupt) }
             session = saved.session
             records = saved.records
             submittedIDs = saved.submittedIDs
+            transientReadFailure = false
+            canWrite = true
+            storageError = nil
         } catch {
+            transientReadFailure = false
             canWrite = false
             storageError = L.text("已有存档无法读取，原文件已保留。可在设置中清除后重新开始。", "The saved data could not be read and has been preserved. Clear local data in Settings to start again.")
         }
@@ -85,7 +136,8 @@ enum L {
         }
     }
     static func time(_ seconds: TimeInterval) -> String {
-        let value = max(0, Int(seconds))
+        guard seconds.isFinite else { return "--:--" }
+        let value = Int(min(max(seconds, 0), 100_000_000))
         return String(format: "%02d:%02d", value / 60, value % 60)
     }
 }
