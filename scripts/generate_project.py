@@ -15,6 +15,12 @@ def config_list(name, debug, release):
     return add(name, {'isa':'XCConfigurationList','buildConfigurations':[debug,release], 'defaultConfigurationIsVisible':0,'defaultConfigurationName':'Release'})
 common = {'SDKROOT':'iphoneos','IPHONEOS_DEPLOYMENT_TARGET':'17.0','SWIFT_VERSION':'5.0','CLANG_ENABLE_MODULES':'YES','CLANG_ENABLE_OBJC_ARC':'YES','ENABLE_USER_SCRIPT_SANDBOXING':'YES','SWIFT_STRICT_CONCURRENCY':'complete'}
 project_configs = config_list('ProjectConfigs',config('ProjDebug',{**common,'DEBUG_INFORMATION_FORMAT':'dwarf','SWIFT_ACTIVE_COMPILATION_CONDITIONS':'DEBUG','SWIFT_OPTIMIZATION_LEVEL':'-Onone','ENABLE_TESTABILITY':'YES','ONLY_ACTIVE_ARCH':'YES'}),config('ProjRelease',{**common,'DEBUG_INFORMATION_FORMAT':'dwarf-with-dsym','SWIFT_COMPILATION_MODE':'wholemodule','SWIFT_OPTIMIZATION_LEVEL':'-O','VALIDATE_PRODUCT':'YES'}))
+# Folder-synchronized groups (object version 77) are the source of truth.
+# Every file under ios/Pi100, ios/Pi100Tests, and ios/Pi100UITests is in that target,
+# including new Swift files such as Views/TallWindowPreference.swift.
+# Info.plist and entitlements are excluded from the resource copy because the app
+# target references them directly. Change build settings here and regenerate;
+# do not hand-edit project.pbxproj.
 products = []; targets = []; groups = []
 for name, kind in [('Pi100','application'),('Pi100Tests','bundle.unit-test'),('Pi100UITests','bundle.ui-testing')]:
     isapp = kind == 'application'

@@ -20,6 +20,7 @@ struct GameView: View {
     @State private var sheet: Sheet?
     @State private var proposedMode: GameMode?
     @State private var restart = false
+    @State private var sceneID = UUID()
     private enum Sheet: String, Identifiable { case history, settings; var id: String { rawValue } }
 
     var body: some View {
@@ -70,8 +71,12 @@ struct GameView: View {
             Button(L.text("开始新的一局", "Start new round"), role: .destructive) { store.newSession(proposedMode ?? store.session.mode, positions: proposedMode == nil ? store.session.positions : nil) }
             Button(L.text("取消", "Cancel"), role: .cancel) { proposedMode = nil }
         }
-        .onChange(of: scenePhase) { _, phase in if phase != .active { store.pause() } }
-        .task(id: store.records.count) { await gameCenter.submitPending(from: store) }
+        .onAppear { store.registerScene(sceneID, active: scenePhase == .active) }
+        .onDisappear { store.unregisterScene(sceneID) }
+        .onChange(of: scenePhase) { _, phase in
+            store.updateScene(sceneID, active: phase == .active)
+        }
+        .task(id: store.records.first?.id) { await gameCenter.submitPending(from: store) }
     }
 
     private func compactBoard(height: CGFloat) -> some View {
@@ -145,7 +150,7 @@ struct GameView: View {
                     if store.session.phase == .finished { store.newSession(store.session.mode, positions: store.session.positions) }
                     store.start()
                 } label: {
-                    Label(store.session.phase == .paused ? L.text("继续练习", "Resume") : L.text("开始", "Begin"), systemImage: "play.fill")
+                    Label(store.session.phase == .paused ? L.text("继续", "Resume") : L.text("开始", "Begin"), systemImage: "play.fill")
                         .font(.headline).frame(maxWidth: .infinity).padding(.vertical, compact ? 6 : 12)
                 }
                 .buttonStyle(.borderedProminent).foregroundStyle(Palette.background).accessibilityIdentifier("start")
@@ -157,7 +162,11 @@ struct GameView: View {
                     .accessibilityLabel(L.text("提示（此位不计分）", "Hint (this digit will not score)"))
                     .accessibilityIdentifier("hint")
                 numberKey(0, compact: compact)
-                Button { proposedMode = nil; restart = true } label: { Image(systemName: "arrow.counterclockwise").frame(maxWidth: .infinity).frame(minHeight: compact ? 44 : 50) }
+                Button {
+                    proposedMode = nil
+                    store.pause()
+                    restart = true
+                } label: { Image(systemName: "arrow.counterclockwise").frame(maxWidth: .infinity).frame(minHeight: compact ? 44 : 50) }
                     .accessibilityLabel(L.text("重新开始", "Restart")).accessibilityIdentifier("restart")
             }
             .buttonStyle(KeyStyle())

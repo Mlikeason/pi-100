@@ -98,10 +98,14 @@ struct GameRecord: Codable, Identifiable, Equatable {
         self.date = date
         self.session = session
     }
+    /// Integer milliseconds for `me.zhuhong.pi100.perfect100` (low-to-high, range 1...86_399_999).
+    /// Times that would round past the leaderboard maximum are omitted so a rejected score cannot block the queue.
     var leaderboardMilliseconds: Int? {
         guard session.eligibleForLeaderboard, session.accumulated.isFinite,
               session.accumulated >= 0, session.accumulated < 86_400 else { return nil }
-        return max(1, Int((session.accumulated * 1_000).rounded()))
+        let milliseconds = (session.accumulated * 1_000).rounded(.toNearestOrAwayFromZero)
+        guard milliseconds.isFinite, milliseconds <= 86_399_999 else { return nil }
+        return max(1, Int(milliseconds))
     }
     static func ranked(_ records: [GameRecord]) -> [GameRecord] {
         records.filter { $0.session.mode == .challenge }.sorted {

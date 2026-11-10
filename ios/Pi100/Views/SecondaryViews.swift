@@ -105,7 +105,7 @@ struct HistoryView: View {
                 }
             }
             .sheet(isPresented: $showLeaderboard) { LeaderboardView() }
-            .sheet(isPresented: Binding(get: { gameCenter.authController != nil }, set: { if !$0 { gameCenter.authController = nil } })) {
+            .sheet(isPresented: Binding(get: { gameCenter.authController != nil }, set: { if !$0 { gameCenter.noteAuthInterfaceDismissed() } })) {
                 if let controller = gameCenter.authController { AuthenticationView(controller: controller) }
             }
             .onChange(of: gameCenter.authenticated) { _, authenticated in
@@ -136,7 +136,7 @@ struct SettingsView: View {
                 }
                 Section(L.text("关于", "About")) {
                     LabeledContent(L.text("开发者", "Developer"), value: "Zhu Hong")
-                    LabeledContent(L.text("版本", "Version"), value: "1.0 (1)")
+                    LabeledContent(L.text("版本", "Version"), value: versionText)
                     Link("zhuhong.me", destination: URL(string: "https://zhuhong.me/pi100/")!)
                     Link(L.text("帮助与支持", "Help & support"), destination: URL(string: "https://zhuhong.me/pi100/support/")!)
                     Link("zivzhu@gmail.com", destination: URL(string: "mailto:zivzhu@gmail.com?subject=Pi100%20Support")!)
@@ -148,5 +148,11 @@ struct SettingsView: View {
                 Button(L.text("清除全部本机数据", "Clear all local data"), role: .destructive) { store.deleteAll() }
             }
         }.tint(Palette.mint)
+    }
+    private var versionText: String {
+        let info = Bundle.main.infoDictionary
+        let version = info?["CFBundleShortVersionString"] as? String ?? "1.0"
+        let build = info?["CFBundleVersion"] as? String ?? "0"
+        return "\(version) (\(build))"
     }
 }

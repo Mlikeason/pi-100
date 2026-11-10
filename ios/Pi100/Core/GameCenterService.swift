@@ -10,7 +10,8 @@ import Combine
     @Published var authenticated = false
     @Published var status = ""
     private var authenticating = false
-    private var submitting = false
+    private var draining = false
+    private var needsAnotherPass = false
 
     func authenticate() {
         guard !authenticating else { return }
@@ -27,22 +28,71 @@ import Combine
             }
         }
     }
+    /// The system login sheet was dismissed without a later handler callback.
+    func noteAuthInterfaceDismissed() {
+        authController = nil
+        authenticating = false
+    }
     func submitPending(from store: GameStore) async {
-        guard authenticated, !submitting else { return }
-        submitting = true
-        defer { submitting = false }
-        for record in store.records where !store.submittedIDs.contains(record.id) {
-            guard let milliseconds = record.leaderboardMilliseconds else { continue }
-            do {
-                try await GKLeaderboard.submitScore(milliseconds, context: 0, player: GKLocalPlayer.local,
-                                                    leaderboardIDs: [Self.leaderboardID])
-                store.markSubmitted(record.id)
-                status = L.text("全球榜成绩已提交", "Global score submitted")
-            } catch {
-                status = L.text("暂未提交，联网后可重试。", "Not submitted yet. Retry when online.")
-                break
+        authenticated = GKLocalPlayer.local.isAuthenticated
+        guard authenticated else { return }
+        let resume = await submitScores(from: store) { milliseconds in
+            try await GKLeaderboard.submitScore(milliseconds, context: 0, player: GKLocalPlayer.local,
+                                                leaderboardIDs: [Self.leaderboardID])
+        }
+        if resume {
+            Task { @MainActor [weak self] in
+                await self?.submitPending(from: store)
             }
         }
+    }
+    /// Submits every qualifying record. One rejection does not stop the rest of the queue.
+    /// A score that arrives while a request is in flight is included before this call returns.
+    /// Returns true when cancellation stopped the drain with work still queued.
+    @discardableResult
+    func submitScores(from store: GameStore, using send: @escaping @MainActor (Int) async throws -> Void) async -> Bool {
+        if draining {
+            needsAnotherPass = true
+            return false
+        }
+        draining = true
+        defer { draining = false }
+        var failed = false
+        var succeeded = false
+        var attempted = Set<UUID>()
+        while !Task.isCancelled {
+            needsAnotherPass = false
+            let pending = store.records.filter { record in
+                record.leaderboardMilliseconds != nil && !store.submittedIDs.contains(record.id) && !attempted.contains(record.id)
+            }
+            if pending.isEmpty { break }
+            for record in pending {
+                guard let milliseconds = record.leaderboardMilliseconds else { continue }
+                attempted.insert(record.id)
+                do {
+                    try await send(milliseconds)
+                    store.markSubmitted(record.id)
+                    succeeded = true
+                } catch {
+                    if error is CancellationError {
+                        needsAnotherPass = true
+                        break
+                    }
+                    failed = true
+                }
+                if Task.isCancelled {
+                    needsAnotherPass = true
+                    break
+                }
+            }
+            if !needsAnotherPass { break }
+        }
+        if failed {
+            status = L.text("暂未提交，联网后可重试。", "Not submitted yet. Retry when online.")
+        } else if succeeded {
+            status = L.text("全球榜成绩已提交", "Global score submitted")
+        }
+        return Task.isCancelled && needsAnotherPass
     }
 }
 
