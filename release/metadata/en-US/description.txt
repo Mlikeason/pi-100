@@ -1,0 +1,14 @@
+One hundred digits. One small step at a time.
+
+Pi 100 is a focused, native way to memorize the first 100 decimal digits of pi. Practice at your own pace, revisit the digits you missed, then put your memory to the test.
+
+• Practice with optional hints; assisted digits are tracked separately.
+• Challenge yourself without hints and compare perfect, uninterrupted runs on Game Center.
+• Review the exact positions you missed.
+• Keep your latest 200 results on your device.
+• Continue where you left off after closing the app.
+• Unfold iPhone Duo to see more digits, with the familiar digit board above the keypad.
+• Support for larger text, VoiceOver, and hardware keyboard input.
+
+Free. No ads. No subscriptions. Practice works offline; Game Center needs an internet connection and an Apple account.
+Created by Zhu Hong.

@@ -1,0 +1,31 @@
+Xcode 27.2 (27B52)
+2026-11-08
+
+Initial simulator universal Debug build: SUCCEEDED
+Compact-layout arm64 simulator revision: SUCCEEDED
+Final unsigned iPhoneOS 27.2 Release archive: SUCCEEDED
+Core XCTest: 12 passed, 0 failed (core unchanged afterward)
+Duo UI test runner: aborted before test methods
+Standard iPhone UI retry: stopped during simulator setup, no test methods executed
+Duo initial expanded visual layout: observed in simulator
+Final compact layout and fold-state interaction: unverified
+Signed device Release archive: SUCCEEDED
+App Store distribution export: SUCCEEDED
+Store profile: me.zhuhong.pi100, KW9NTQUH4T, Game Center=true, get-task-allow=false
+App Store Connect app record: 6832265598
+Build 1 upload: SUCCEEDED; processing began; not submitted for review
+Store work: PAUSED by user
+Local build 2 simulator build (vertical layout and tall-window preference): SUCCEEDED
+Build 2 compiler diagnostics: no Swift errors/warnings; AppIntents metadata skipped (no dependency)
+Build 2 closed Duo: app launched; board above full visible keypad; Begin and first digit 1 accepted, progress 1/100
+Build 2 actual Duo default rotation/fold interaction: unverified; shared Device Hub switched to an unrelated physical device, so UI control stopped
+Build 2 physical iPhone Duo development build: SUCCEEDED
+Build 2 physical install: SUCCEEDED; CoreDevice confirms version 1.0, bundle version 2
+Build 2 physical launch: SUCCEEDED (iOS 27.2)
+Build 2 physical UI: observed foreground on target Duo; vertical board/keypad, full controls visible, existing paused progress retained; read-only verification
+Game Center signed authentication/submission: unverified, leaderboard setup pending
+
+Archive: build/Pi100-unsigned.xcarchive
+Signed archive: build/Pi100.xcarchive
+App Store package: build/AppStore/Pi100.ipa
+Core test bundle: build/DuoTests.xcresult
