@@ -30,7 +30,7 @@ for name, kind in [('Pi100','application'),('Pi100Tests','bundle.unit-test'),('P
     products.append(product)
     settings = {'PRODUCT_NAME':'$(TARGET_NAME)','PRODUCT_BUNDLE_IDENTIFIER':'me.zhuhong.pi100'+('' if isapp else '.'+name), 'CODE_SIGN_STYLE':'Automatic','DEVELOPMENT_TEAM':'KW9NTQUH4T','TARGETED_DEVICE_FAMILY':'1,2','SUPPORTED_PLATFORMS':'iphoneos iphonesimulator','GENERATE_INFOPLIST_FILE':'YES'}
     if isapp:
-        settings.update({'INFOPLIST_FILE':'Pi100/Resources/Info.plist','CODE_SIGN_ENTITLEMENTS':'Pi100/Resources/Pi100.entitlements','ASSETCATALOG_COMPILER_APPICON_NAME':'AppIcon','MARKETING_VERSION':'1.0','CURRENT_PROJECT_VERSION':'3','INFOPLIST_KEY_CFBundleDisplayName':'π 100','INFOPLIST_KEY_LSApplicationCategoryType':'public.app-category.education','INFOPLIST_KEY_UILaunchScreen_Generation':'YES','INFOPLIST_KEY_UIApplicationSceneManifest_Generation':'YES','SWIFT_EMIT_LOC_STRINGS':'YES'})
+        settings.update({'INFOPLIST_FILE':'Pi100/Resources/Info.plist','CODE_SIGN_ENTITLEMENTS':'Pi100/Resources/Pi100.entitlements','ASSETCATALOG_COMPILER_APPICON_NAME':'AppIcon','MARKETING_VERSION':'1.0','CURRENT_PROJECT_VERSION':'4','INFOPLIST_KEY_CFBundleDisplayName':'π 100','INFOPLIST_KEY_LSApplicationCategoryType':'public.app-category.education','INFOPLIST_KEY_UILaunchScreen_Generation':'YES','INFOPLIST_KEY_UIApplicationSceneManifest_Generation':'YES','SWIFT_EMIT_LOC_STRINGS':'YES'})
         exception = add('ResourcesException', {'isa':'PBXFileSystemSynchronizedBuildFileExceptionSet','membershipExceptions':['Resources/Info.plist','Resources/Pi100.entitlements'],'target':hashlib.sha256(name.encode()).hexdigest()[:24].upper()})
         objects[group]['exceptions']=[exception]
     elif kind == 'bundle.unit-test':
