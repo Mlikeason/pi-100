@@ -1,0 +1,33 @@
+Test Suite 'All tests' started at 2026-11-08 15:34:18.218.
+Test Suite 'Pi100Tests.xctest' started at 2026-11-08 15:34:18.250.
+Test Suite 'GameSessionTests' started at 2026-11-08 15:34:18.250.
+Test Case '-[Pi100Tests.GameSessionTests testAccuracyRanksAheadOfSpeed]' started.
+Test Case '-[Pi100Tests.GameSessionTests testAccuracyRanksAheadOfSpeed]' passed (0.017 seconds).
+Test Case '-[Pi100Tests.GameSessionTests testCorruptSaveIsPreservedUntilExplicitReset]' started.
+Test Case '-[Pi100Tests.GameSessionTests testCorruptSaveIsPreservedUntilExplicitReset]' passed (0.035 seconds).
+Test Case '-[Pi100Tests.GameSessionTests testHintDoesNotEarnCreditAndIsAddedToReview]' started.
+Test Case '-[Pi100Tests.GameSessionTests testHintDoesNotEarnCreditAndIsAddedToReview]' passed (0.001 seconds).
+Test Case '-[Pi100Tests.GameSessionTests testInputOnlyAcceptedWhileRunning]' started.
+Test Case '-[Pi100Tests.GameSessionTests testInputOnlyAcceptedWhileRunning]' passed (0.017 seconds).
+Test Case '-[Pi100Tests.GameSessionTests testPauseExcludesBackgroundTimeAndInvalidatesGlobalScore]' started.
+Test Case '-[Pi100Tests.GameSessionTests testPauseExcludesBackgroundTimeAndInvalidatesGlobalScore]' passed (0.001 seconds).
+Test Case '-[Pi100Tests.GameSessionTests testPerfectChallengeQualifiesAndStopsAt100]' started.
+Test Case '-[Pi100Tests.GameSessionTests testPerfectChallengeQualifiesAndStopsAt100]' passed (0.001 seconds).
+Test Case '-[Pi100Tests.GameSessionTests testPiFixtureHasExactly100CorrectDigits]' started.
+Test Case '-[Pi100Tests.GameSessionTests testPiFixtureHasExactly100CorrectDigits]' passed (0.001 seconds).
+Test Case '-[Pi100Tests.GameSessionTests testPracticeNeverQualifiesGlobally]' started.
+Test Case '-[Pi100Tests.GameSessionTests testPracticeNeverQualifiesGlobally]' passed (0.001 seconds).
+Test Case '-[Pi100Tests.GameSessionTests testReviewPositionsAreSanitized]' started.
+Test Case '-[Pi100Tests.GameSessionTests testReviewPositionsAreSanitized]' passed (0.001 seconds).
+Test Case '-[Pi100Tests.GameSessionTests testSnapshotDoesNotPauseLiveGameAndRestoresPaused]' started.
+Test Case '-[Pi100Tests.GameSessionTests testSnapshotDoesNotPauseLiveGameAndRestoresPaused]' passed (0.006 seconds).
+Test Case '-[Pi100Tests.GameSessionTests testStorageRestoresAndDeletesProgress]' started.
+Test Case '-[Pi100Tests.GameSessionTests testStorageRestoresAndDeletesProgress]' passed (0.005 seconds).
+Test Case '-[Pi100Tests.GameSessionTests testWrongDigitAdvancesAndKeepsExpectedDigit]' started.
+Test Case '-[Pi100Tests.GameSessionTests testWrongDigitAdvancesAndKeepsExpectedDigit]' passed (0.001 seconds).
+Test Suite 'GameSessionTests' passed at 2026-11-08 15:34:20.575.
+	 Executed 12 tests, with 0 failures (0 unexpected) in 0.088 (2.325) seconds
+Test Suite 'Pi100Tests.xctest' passed at 2026-11-08 15:34:20.577.
+	 Executed 12 tests, with 0 failures (0 unexpected) in 0.088 (2.327) seconds
+Test Suite 'All tests' passed at 2026-11-08 15:34:20.578.
+	 Executed 12 tests, with 0 failures (0 unexpected) in 0.088 (2.360) seconds

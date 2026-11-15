@@ -1,1 +1,13 @@
 .DS_Store
+
+# Native build products and local signing
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.xcarchive
+*.ipa
+.env
+.env.*
+!.env.example
+release/private/

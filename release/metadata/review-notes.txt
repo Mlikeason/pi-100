@@ -1,0 +1,12 @@
+Pi 100 is a free, ad-free native SwiftUI memory game. No custom account is required. Practice, Challenge, Review, and local history work offline.
+
+Game Center is optional, accessed through Results > Connect Game Center. The leaderboard me.zhuhong.pi100.perfect100 accepts only 100/100 unassisted, uninterrupted Challenge completions. Lower elapsed time wins. Pausing or leaving the app invalidates that round for the global board, while preserving local progress. Practice and Review rounds never submit.
+
+Test: choose Practice, tap Begin, enter digits. Hint reveals the next digit but removes credit for that position. Results are saved automatically at completion. Missed and assisted positions can be reviewed. Settings includes privacy, support, and local-data deletion.
+
+The layout responds to available window space. The digit board always stays above the keypad, including on iPhone Duo. On iPhone, the app requests a tall window using the local scene geometry; system multitasking policies may decline that preference. The game model persists across layout changes. No special permissions, ads, purchases, or tracking SDKs are used.
+
+Contact: Zhu Hong, zivzhu@gmail.com
+Marketing: https://zhuhong.me/pi100/
+Support: https://zhuhong.me/pi100/support/
+Privacy: https://zhuhong.me/pi100/privacy/

@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>π 100 — 圆周率记忆挑战</title>
     <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
     <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
@@ -725,7 +725,9 @@
         // If left empty/placeholder, the app falls back to local-only
         // storage — your scores stay on this device.
         // ============================================================
-        const PANTRY_ID = '8bf6c12e-4141-4ca2-b488-622a5bfe85ff';
+        // Disabled: a public shared-basket write URL cannot secure a leaderboard.
+        // The native iOS app uses Game Center. Do not put a write credential here.
+        const PANTRY_ID = '';
         const BASKET = 'pi100-scores';
         const REMOTE_URL = PANTRY_ID
             ? `https://getpantry.cloud/apiv1/pantry/${PANTRY_ID}/basket/${BASKET}`
@@ -873,9 +875,11 @@
                 btn.id = `key-${k}`;
                 if (k === 'C') {
                     btn.classList.add('clear');
-                    btn.addEventListener('click', () => { animateKey(btn); feedback('util'); cleanGame(); });
+                    btn.setAttribute('aria-label', '重新开始');
+                    btn.addEventListener('click', () => { animateKey(btn); feedback('util'); if (!currentIndex || gameDone || confirm('重新开始会清除本局进度，继续吗？')) cleanGame(); });
                 } else if (k === 'M') {
                     btn.classList.add('medal');
+                    btn.setAttribute('aria-label', '成绩单');
                     btn.addEventListener('click', () => { animateKey(btn); feedback('util'); showLeaderboard(); });
                 } else {
                     btn.classList.add('num');
@@ -931,7 +935,7 @@
             if (num === correct) {
                 inputs[idx] = String(num);
                 wrongAt[idx] = false;
-                score++;
+                if (!showHint) score++;
                 feedback('correct');
             } else {
                 inputs[idx] = String(correct);
@@ -1222,7 +1226,7 @@
 
             let view;
             if (activeTab === 'top') {
-                view = [...records].sort((a, b) => a.timeUsed - b.timeUsed).slice(0, TOP_N);
+                view = [...records].sort((a, b) => (b.baseScore - a.baseScore) || (a.timeUsed - b.timeUsed)).slice(0, TOP_N);
             } else {
                 view = [...records].sort((a, b) => b.date - a.date);
             }
