@@ -1,0 +1,89 @@
+π 100 — App Store Connect, FIRST submission: version 1.0, build 4
+App: "π 100：圆周率记忆挑战" · Apple ID 6832265598 · bundle me.zhuhong.pi100 · SKU pi100-ios-001 · primary language zh-Hans
+Build 4 uploaded 2026-11-16 00:06 SGT ("Upload succeeded."), from main aba08c7 (Duo redesign, merge 74edbf2).
+Source: release/metadata/zh-Hans/*, release/metadata/review-notes.txt, README.md, docs/RELEASE.md. Lines marked [UPDATED] were changed because the old text described the pre-redesign layout.
+
+==================== zh-Hans listing ====================
+名称（已在 ASC 中）
+π 100：圆周率记忆挑战
+
+副标题（13/30）
+逐位练习，错题复习，全球竞速
+
+推广文本（新写，取自描述，≤170）
+一百位圆周率，一点点记住。练习时可用提示，复习答错的位置，再用无提示挑战参加 Game Center 全球用时排名。
+
+描述
+一百位圆周率，一点点记住。
+
+π 100 是一款专注的原生圆周率记忆应用。从小数点后第一位开始，按自己的节奏练习，再用一场挑战检验记忆。
+
+• 练习模式提供可选提示，提示过的位置单独记录、不计分。
+• 无提示挑战：100 位全对、不中断即可参加 Game Center 全球用时排名。
+• 精准复习答错或提示过的位置。
+• 本机保留最近 200 局成绩。
+• 自动保存练习，关闭应用后也能继续。
+• 为 iPhone Duo 设计：展开后数字区与键盘以中缝为界左右分屏，合上时上下排列。 [UPDATED]
+• 更大的触感按键，实时节奏条显示当前用时所处的档位（仅供参考，不影响计分）。 [UPDATED: new design]
+• 支持大字体、VoiceOver 和外接键盘。
+
+免费，无广告，无订阅。练习可离线使用；Game Center 需要联网和 Apple 账户。
+开发者：Zhu Hong
+
+关键词（9 个，远低于 100 字符）
+圆周率,记忆,数学,数字,练习,背诵,挑战,竞速,益智
+
+技术支持网址（已验证 HTTP 200）  https://zhuhong.me/pi100/support/
+营销网址（已验证 HTTP 200）      https://zhuhong.me/pi100/
+隐私政策网址（已验证 HTTP 200）  https://zhuhong.me/pi100/privacy/
+版权                             2026 Zhu Hong
+
+此版本的新增内容
+（1.0 是首个版本，ASC 不显示这一栏。下一次更新可用：）
+为 iPhone Duo 重新设计：展开后左右分屏，按键更大、更有触感，新增实时节奏条。
+
+==================== App 信息 ====================
+主要类别：游戏 → 子类别：益智（Puzzle）；次要类别：教育（docs/RELEASE.md 的建议）
+内容版权：不包含、显示或访问第三方内容
+价格：免费（0 档），无 App 内购买
+发行地区：由你决定。注意：在“游戏”类别下，中国大陆需要网络游戏出版物号（版号）才能上架。如果没有版号，请取消勾选中国大陆，或改用“教育”作主类别（需要你决定）。
+
+==================== 年龄分级问卷（全部填“无/否”→ 4+）====================
+家长控制：否 · 年龄验证：否 · 不受限的网页访问：否 · 用户生成内容：否 · 消息与聊天：否 · 广告：否
+卡通/幻想暴力、写实暴力、长时间血腥/虐待暴力、粗俗语言/低俗幽默、恐怖/惊悚、成人/暗示性主题、医疗/治疗信息、酒精/烟草/毒品、色情内容/裸露、模拟赌博、竞赛、付费随机物品（开箱）：全部为“无”
+（Game Center 排行榜只显示 Apple 管理的昵称，App 内没有聊天或用户内容。说明里不要暗示任何医疗或“健脑”功效。）
+
+==================== App 隐私 ====================
+事实（来自代码和 zhuhong.me/pi100/privacy/）：没有开发者服务器，没有分析或广告 SDK，没有 IDFA，不访问位置、通讯录、相机或麦克风。进度和成绩只保存在本机（UserDefaults 加一个 JSON 文件）。只有在用户主动在“成绩单”里点“连接 Game Center”后，App 才会通过 GameKit 的 GKLeaderboard.submitScore 把一局完美挑战的用时（毫秒）提交给 Apple。代码不读取任何 Game Center 玩家 ID（gamePlayerID、teamPlayerID 都没有用）。
+建议答案：“不收集数据”。理由：开发者不接收任何数据；成绩由 Apple 的 Game Center 服务处理。
+较保守的写法（需要你决定）：“收集数据 → 用户内容 → 游戏内容”，与用户关联：否，用于追踪：否，用途：App 功能。
+隐私清单（PrivacyInfo.xcprivacy）：tracking false；UserDefaults CA92.1；SystemBootTime 35F9.1。
+
+==================== Game Center（必须在版本页上完成）====================
+1. 功能 → Game Center：创建经典排行榜（docs/RELEASE.md 写明这一步还没做）：
+   ID me.zhuhong.pi100.perfect100 · 参考名称 Perfect 100 — fastest time · 排序：从低到高 · 提交：最佳成绩
+   分数格式：整数（单位是毫秒）· 范围 1–86399999 · zh-Hans 本地化：显示名称“完美 100 · 最快用时”，后缀“ 毫秒”
+   （App 提交的是毫秒，不要选“经过的时间（秒）”格式。）
+2. 1.0 版本页 → 勾选 Game Center，并把这个排行榜加进去，让它和 1.0 一起提交审核。
+
+==================== App 审核信息 ====================
+需要登录：否
+联系人：Zhu Hong · zivzhu@gmail.com · 电话：（由你填写）
+备注（英文）：
+Pi 100 is a free, ad-free native SwiftUI memory game for learning the first 100 decimal digits of pi. No account is required. Practice, Challenge, Review and local history work offline.
+
+Game Center is optional, accessed through Results (成绩单) > Connect Game Center. The leaderboard me.zhuhong.pi100.perfect100 accepts only 100/100 unassisted, uninterrupted Challenge completions; lower elapsed time (milliseconds) wins. Pausing or leaving the app invalidates that round for the global board while preserving local progress. Practice and Review rounds never submit.
+
+Test: tap Begin (开始) in Practice and enter digits on the keypad. Hint reveals the next digit but removes credit for that position. Results are saved automatically when a round completes; missed and assisted positions can be reviewed. The pace bar is display-only and does not affect scoring. Settings includes privacy, support and local-data deletion.
+
+Layout: on iPhone Duo unfolded (or any wide window) the digit board is on the left half and the keypad on the right, split at the fold; on the folded cover display and on standard iPhones they are stacked. Game progress persists across layout changes. No special permissions, ads, purchases or tracking SDKs.
+
+Marketing https://zhuhong.me/pi100/ · Support https://zhuhong.me/pi100/support/ · Privacy https://zhuhong.me/pi100/privacy/
+
+出口合规：Info.plist 里 ITSAppUsesNonExemptEncryption = false，ASC 不会提问。
+发布方式：手动（保持不变）。
+
+==================== 截图（zh-Hans）====================
+iPhone 6.9"（1320×2868）：iphone_1-Start、2-Playing、3-Results、4-History
+iPad 13"（2752×2064，横屏，展示左右分屏）：ipad_1..4（target 是 TARGETED_DEVICE_FAMILY 1,2，所以必须上传 iPad 截图）
+iPhone Duo 外屏（1398×2034）：duo_1..4
